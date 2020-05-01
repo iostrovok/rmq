@@ -113,12 +113,12 @@ func (queue *redisQueue) PublishBytes(payload ...[]byte) (bool, error) {
 }
 
 // PurgeReady removes all ready deliveries from the queue and returns the number of purged deliveries
-func (queue *redisQueue) PurgeReady() (int, error) {
+func (queue *redisQueue) PurgeReady() (int64, error) {
 	return queue.deleteRedisList(queue.readyKey)
 }
 
 // PurgeRejected removes all rejected deliveries from the queue and returns the number of purged deliveries
-func (queue *redisQueue) PurgeRejected() (int, error) {
+func (queue *redisQueue) PurgeRejected() (int64, error) {
 	return queue.deleteRedisList(queue.rejectedKey)
 }
 
@@ -126,37 +126,35 @@ func (queue *redisQueue) PurgeRejected() (int, error) {
 func (queue *redisQueue) Close() (bool, error) {
 	queue.PurgeRejected()
 	queue.PurgeReady()
-	count, _, err := queue.redisClient.SRem(queuesKey, queue.name)
+	count, err := queue.redisClient.SRem(queuesKey, queue.name)
 	return count > 0, err
 }
 
-func (queue *redisQueue) ReadyCount() (int, error) {
-	count, _, err := queue.redisClient.LLen(queue.readyKey)
-	return count, err
+func (queue *redisQueue) ReadyCount() (int64, error) {
+	return queue.redisClient.LLen(queue.readyKey)
 }
 
-func (queue *redisQueue) UnackedCount() (int, error) {
-	count, _, err := queue.redisClient.LLen(queue.unackedKey)
-	return count, err
+func (queue *redisQueue) UnackedCount() (int64, error) {
+	return queue.redisClient.LLen(queue.unackedKey)
 }
 
-func (queue *redisQueue) RejectedCount() (int, error) {
-	count, _, err := queue.redisClient.LLen(queue.rejectedKey)
-	return count, err
+func (queue *redisQueue) RejectedCount() (int64, error) {
+	return queue.redisClient.LLen(queue.rejectedKey)
 }
 
 // ReturnAllUnacked moves all unacked deliveries back to the ready
 // queue and deletes the unacked key afterwards, returns number of returned
 // deliveries
-func (queue *redisQueue) ReturnAllUnacked() (int, error) {
+func (queue *redisQueue) ReturnAllUnacked() (int64, error) {
 	count, ok, err := queue.redisClient.LLen(queue.unackedKey)
 	if !ok {
 		return 0, err
 	}
 
 	unackedCount := count
-	for i := 0; i < unackedCount; i++ {
-		// TODO: RPopLPush until we get redis.nil error?
+	for i := int64(0); i < unackedCount; i++ {
+		// one consideration: in theory it might not finish if packages get constantly added
+		// but that can probably be safely ignored
 		if _, ok, err := queue.redisClient.RPopLPush(queue.unackedKey, queue.readyKey); !ok {
 			return i, err
 		}
@@ -168,8 +166,9 @@ func (queue *redisQueue) ReturnAllUnacked() (int, error) {
 
 // ReturnAllRejected moves all rejected deliveries back to the ready
 // list and returns the number of returned deliveries
-func (queue *redisQueue) ReturnAllRejected() (int, error) {
-	rejectedCount, _, err := queue.redisClient.LLen(queue.rejectedKey)
+func (queue *redisQueue) ReturnAllRejected() (int64, error) {
+	// TODO: just use maxint instead of getting the actual count?
+	rejectedCount, _, err := queue.RejectedCount()
 	if err != nil {
 		return 0, err
 	}
@@ -178,15 +177,13 @@ func (queue *redisQueue) ReturnAllRejected() (int, error) {
 
 // ReturnRejected tries to return count rejected deliveries back to
 // the ready list and returns the number of returned deliveries
-func (queue *redisQueue) ReturnRejected(count int) (int, error) {
+func (queue *redisQueue) ReturnRejected(count int64) (int64, error) {
 	if count == 0 {
 		return 0, nil
 	}
 
-	for i := 0; i < count; i++ {
-		// TODO: just stop on redis.nil, count was too high
-		_, ok, err := queue.redisClient.RPopLPush(queue.rejectedKey, queue.readyKey)
-		if !ok {
+	for i := int64(0); i < count; i++ {
+		if _, ok, err := queue.redisClient.RPopLPush(queue.rejectedKey, queue.readyKey); !ok {
 			return i, err
 		}
 		// debug(fmt.Sprintf("rmq queue returned rejected delivery %s %s", value, queue.readyKey)) // COMMENTOUT
@@ -434,7 +431,7 @@ func (queue *redisQueue) batchTimeout(batchSize int, batch []Delivery, timeout t
 
 // return number of deleted list items
 // https://www.redisgreen.net/blog/deleting-large-lists
-func (queue *redisQueue) deleteRedisList(key string) (int, error) {
+func (queue *redisQueue) deleteRedisList(key string) (int64, error) {
 	total, _, err := queue.redisClient.LLen(key)
 	if total == 0 {
 		return 0, err // nothing to do
@@ -458,6 +455,7 @@ func (queue *redisQueue) deleteRedisList(key string) (int, error) {
 	return total, nil
 }
 
+// TODO: remove this and all COMMENTOUT lines
 func debug(message string) {
 	// log.Printf("rmq debug: %s", message) // COMMENTOUT
 }

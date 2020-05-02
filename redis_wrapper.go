@@ -30,11 +30,11 @@ func (wrapper RedisWrapper) LLen(key string) (affected int64, err error) {
 	return wrapper.rawClient.LLen(key).Result()
 }
 
-func (wrapper RedisWrapper) LRem(key string, count int, value string) (affected int64, err error) {
+func (wrapper RedisWrapper) LRem(key string, count int64, value string) (affected int64, err error) {
 	return wrapper.rawClient.LRem(key, int64(count), value).Result()
 }
 
-func (wrapper RedisWrapper) LTrim(key string, start, stop int) error {
+func (wrapper RedisWrapper) LTrim(key string, start, stop int64) error {
 	return wrapper.rawClient.LTrim(key, int64(start), int64(stop)).Err()
 }
 

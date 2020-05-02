@@ -114,7 +114,7 @@ func TestTestRedisClient_LPush(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			//Push
-			err := tt.client.LPush(tt.args.key, tt.args.value)
+			_, err := tt.client.LPush(tt.args.key, tt.args.value)
 			assert.NoError(t, err)
 
 			//Len

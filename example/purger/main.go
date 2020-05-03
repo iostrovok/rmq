@@ -12,7 +12,10 @@ func main() {
 		panic(err)
 	}
 
-	queue := connection.OpenQueue("things")
+	queue, err := connection.OpenQueue("things")
+	if err != nil {
+		panic(err)
+	}
 	count, err := queue.PurgeReady()
 	if err != nil {
 		log.Printf("failed to purge: %s", err)

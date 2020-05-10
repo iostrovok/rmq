@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/adjust/gocheck"
+	. "github.com/iostrovok/check"
 )
 
-func TestStatsSuite(t *testing.T) {
-	TestingSuiteT(&StatsSuite{}, t)
-}
-
 type StatsSuite struct{}
+
+var _ = Suite(&StatsSuite{})
+
+func TestStatsSuite(t *testing.T) { TestingT(t) }
 
 func (suite *StatsSuite) TestStats(c *C) {
 	connection := OpenConnection("stats-conn", "tcp", "localhost:6379", 1)

@@ -3,14 +3,14 @@ package rmq
 import (
 	"testing"
 
-	. "github.com/adjust/gocheck"
+	. "github.com/iostrovok/check"
 )
 
-func TestConnectionSuite(t *testing.T) {
-	TestingSuiteT(&ConnectionSuite{}, t)
-}
-
 type ConnectionSuite struct{}
+
+var _ = Suite(&ConnectionSuite{})
+
+func TestConnectionSuite(t *testing.T) { TestingT(t) }
 
 func (suite *ConnectionSuite) TestConnection(c *C) {
 	connection := NewTestConnection()

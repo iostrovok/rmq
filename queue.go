@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/adjust/uniuri"
+	"github.com/iostrovok/rmq/uniuri"
 )
 
 const (

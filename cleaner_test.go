@@ -4,14 +4,15 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/adjust/gocheck"
+	. "github.com/iostrovok/check"
 )
 
-func TestCleanerSuite(t *testing.T) {
-	TestingSuiteT(&CleanerSuite{}, t)
-}
 
 type CleanerSuite struct{}
+
+var _ = Suite(&CleanerSuite{})
+
+func TestCleanerSuite(t *testing.T) { TestingT(t) }
 
 func (suite *CleanerSuite) TestCleaner(c *C) {
 	flushConn := OpenConnection("cleaner-flush", "tcp", "localhost:6379", 1)

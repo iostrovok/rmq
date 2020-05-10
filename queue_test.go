@@ -6,31 +6,31 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/adjust/gocheck"
+	. "github.com/iostrovok/check"
 )
-
-func TestQueueSuite(t *testing.T) {
-	TestingSuiteT(&QueueSuite{}, t)
-}
 
 type QueueSuite struct{}
 
+var _ = Suite(&QueueSuite{})
+
+func TestQueueSuite(t *testing.T) { TestingT(t) }
+
 func (suite *QueueSuite) TestConnections(c *C) {
-	flushConn := OpenConnection("conns-flush", "tcp", "localhost:6379", 1)
+	flushConn := OpenConnection("conns-flush", "tcp", "127.0.0.1:6379", 1)
 	flushConn.flushDb()
 	flushConn.StopHeartbeat()
 
-	connection := OpenConnection("conns-conn", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("conns-conn", "tcp", "127.0.0.1:6379", 1)
 	c.Assert(connection, NotNil)
 	c.Assert(NewCleaner(connection).Clean(), IsNil)
 
 	c.Check(connection.GetConnections(), HasLen, 1, Commentf("cleaner %s", connection.Name)) // cleaner connection remains
 
-	conn1 := OpenConnection("conns-conn1", "tcp", "localhost:6379", 1)
+	conn1 := OpenConnection("conns-conn1", "tcp", "127.0.0.1:6379", 1)
 	c.Check(connection.GetConnections(), HasLen, 2)
 	c.Check(connection.hijackConnection("nope").Check(), Equals, false)
 	c.Check(conn1.Check(), Equals, true)
-	conn2 := OpenConnection("conns-conn2", "tcp", "localhost:6379", 1)
+	conn2 := OpenConnection("conns-conn2", "tcp", "127.0.0.1:6379", 1)
 	c.Check(connection.GetConnections(), HasLen, 3)
 	c.Check(conn1.Check(), Equals, true)
 	c.Check(conn2.Check(), Equals, true)
@@ -50,7 +50,7 @@ func (suite *QueueSuite) TestConnections(c *C) {
 }
 
 func (suite *QueueSuite) TestConnectionQueues(c *C) {
-	connection := OpenConnection("conn-q-conn", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("conn-q-conn", "tcp", "127.0.0.1:6379", 1)
 	c.Assert(connection, NotNil)
 
 	connection.CloseAllQueues()
@@ -88,7 +88,7 @@ func (suite *QueueSuite) TestConnectionQueues(c *C) {
 }
 
 func (suite *QueueSuite) TestQueue(c *C) {
-	connection := OpenConnection("queue-conn", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("queue-conn", "tcp", "127.0.0.1:6379", 1)
 	c.Assert(connection, NotNil)
 
 	queue := connection.OpenQueue("queue-q").(*redisQueue)
@@ -125,7 +125,7 @@ func (suite *QueueSuite) TestQueue(c *C) {
 }
 
 func (suite *QueueSuite) TestConsumer(c *C) {
-	connection := OpenConnection("cons-conn", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("cons-conn", "tcp", "127.0.0.1:6379", 1)
 	c.Assert(connection, NotNil)
 
 	queue1 := connection.OpenQueue("cons-q").(*redisQueue)
@@ -209,7 +209,7 @@ func (suite *QueueSuite) TestConsumer(c *C) {
 }
 
 func (suite *QueueSuite) TestMulti(c *C) {
-	connection := OpenConnection("multi-conn", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("multi-conn", "tcp", "127.0.0.1:6379", 1)
 	queue := connection.OpenQueue("multi-q").(*redisQueue)
 	queue.PurgeReady()
 
@@ -258,7 +258,7 @@ func (suite *QueueSuite) TestMulti(c *C) {
 }
 
 func (suite *QueueSuite) TestBatch(c *C) {
-	connection := OpenConnection("batch-conn", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("batch-conn", "tcp", "127.0.0.1:6379", 1)
 	queue := connection.OpenQueue("batch-q").(*redisQueue)
 	queue.PurgeRejected()
 	queue.PurgeReady()
@@ -307,7 +307,7 @@ func (suite *QueueSuite) TestBatch(c *C) {
 }
 
 func (suite *QueueSuite) TestReturnRejected(c *C) {
-	connection := OpenConnection("return-conn", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("return-conn", "tcp", "127.0.0.1:6379", 1)
 	queue := connection.OpenQueue("return-q").(*redisQueue)
 	queue.PurgeReady()
 
@@ -360,7 +360,7 @@ func (suite *QueueSuite) TestReturnRejected(c *C) {
 }
 
 func (suite *QueueSuite) TestPushQueue(c *C) {
-	connection := OpenConnection("push", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("push", "tcp", "127.0.0.1:6379", 1)
 	queue1 := connection.OpenQueue("queue1").(*redisQueue)
 	queue2 := connection.OpenQueue("queue2").(*redisQueue)
 	queue1.SetPushQueue(queue2)
@@ -395,7 +395,7 @@ func (suite *QueueSuite) TestPushQueue(c *C) {
 }
 
 func (suite *QueueSuite) TestConsuming(c *C) {
-	connection := OpenConnection("consume", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("consume", "tcp", "127.0.0.1:6379", 1)
 	queue := connection.OpenQueue("consume-q").(*redisQueue)
 
 	finishedChan := queue.StopConsuming()
@@ -418,7 +418,7 @@ func (suite *QueueSuite) TestConsuming(c *C) {
 }
 
 func (suite *QueueSuite) TestStopConsuming_Consumer(c *C) {
-	connection := OpenConnection("consume", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("consume", "tcp", "127.0.0.1:6379", 1)
 	queue := connection.OpenQueue("consume-q").(*redisQueue)
 	queue.PurgeReady()
 
@@ -454,7 +454,7 @@ func (suite *QueueSuite) TestStopConsuming_Consumer(c *C) {
 }
 
 func (suite *QueueSuite) TestStopConsuming_BatchConsumer(c *C) {
-	connection := OpenConnection("batchConsume", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("batchConsume", "tcp", "127.0.0.1:6379", 1)
 	queue := connection.OpenQueue("batchConsume-q").(*redisQueue)
 	queue.PurgeReady()
 
@@ -495,7 +495,7 @@ func (suite *QueueSuite) TestStopConsuming_BatchConsumer(c *C) {
 
 func (suite *QueueSuite) BenchmarkQueue(c *C) {
 	// open queue
-	connection := OpenConnection("bench-conn", "tcp", "localhost:6379", 1)
+	connection := OpenConnection("bench-conn", "tcp", "127.0.0.1:6379", 1)
 	queueName := fmt.Sprintf("bench-q%d", c.N)
 	queue := connection.OpenQueue(queueName).(*redisQueue)
 

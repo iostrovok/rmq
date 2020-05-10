@@ -3,15 +3,14 @@ package rmq
 import (
 	"testing"
 
-	. "github.com/adjust/gocheck"
+	. "github.com/iostrovok/check"
 )
 
-func TestDeliverySuite(t *testing.T) {
-	TestingSuiteT(&DeliverySuite{}, t)
-}
+type DeliverySuite struct{}
 
-type DeliverySuite struct {
-}
+var _ = Suite(&DeliverySuite{})
+
+func TestDeliverySuite(t *testing.T) { TestingT(t) }
 
 func (suite *DeliverySuite) TestDeliveryPayload(c *C) {
 	var delivery Delivery

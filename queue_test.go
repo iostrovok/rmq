@@ -3,26 +3,21 @@ package rmq
 import (
 	"fmt"
 	"strconv"
-	"testing"
 	"time"
 
-	. "github.com/adjust/gocheck"
+	. "github.com/iostrovok/check"
 )
 
-func TestQueueSuite(t *testing.T) {
-	TestingSuiteT(&QueueSuite{}, t)
-}
-
-type QueueSuite struct{}
-
-func (suite *QueueSuite) TestConnections(c *C) {
+func (suite *TestSuite) TestConnections(c *C) {
 	flushConn := OpenConnection("conns-flush", "tcp", "localhost:6379", 1)
 	flushConn.flushDb()
 	flushConn.StopHeartbeat()
+	defer flushConn.Close()
 
 	connection := OpenConnection("conns-conn", "tcp", "localhost:6379", 1)
 	c.Assert(connection, NotNil)
 	c.Assert(NewCleaner(connection).Clean(), IsNil)
+	defer connection.Close()
 
 	c.Check(connection.GetConnections(), HasLen, 1, Commentf("cleaner %s", connection.Name)) // cleaner connection remains
 
@@ -34,6 +29,8 @@ func (suite *QueueSuite) TestConnections(c *C) {
 	c.Check(connection.GetConnections(), HasLen, 3)
 	c.Check(conn1.Check(), Equals, true)
 	c.Check(conn2.Check(), Equals, true)
+	defer conn1.Close()
+	defer conn2.Close()
 
 	connection.hijackConnection("nope").StopHeartbeat()
 	conn1.StopHeartbeat()
@@ -49,7 +46,7 @@ func (suite *QueueSuite) TestConnections(c *C) {
 	connection.StopHeartbeat()
 }
 
-func (suite *QueueSuite) TestConnectionQueues(c *C) {
+func (suite *TestSuite) TestConnectionQueues(c *C) {
 	connection := OpenConnection("conn-q-conn", "tcp", "localhost:6379", 1)
 	c.Assert(connection, NotNil)
 
@@ -87,7 +84,7 @@ func (suite *QueueSuite) TestConnectionQueues(c *C) {
 	connection.StopHeartbeat()
 }
 
-func (suite *QueueSuite) TestQueue(c *C) {
+func (suite *TestSuite) TestQueue(c *C) {
 	connection := OpenConnection("queue-conn", "tcp", "localhost:6379", 1)
 	c.Assert(connection, NotNil)
 
@@ -124,7 +121,7 @@ func (suite *QueueSuite) TestQueue(c *C) {
 	connection.StopHeartbeat()
 }
 
-func (suite *QueueSuite) TestConsumer(c *C) {
+func (suite *TestSuite) TestConsumer(c *C) {
 	connection := OpenConnection("cons-conn", "tcp", "localhost:6379", 1)
 	c.Assert(connection, NotNil)
 
@@ -208,7 +205,7 @@ func (suite *QueueSuite) TestConsumer(c *C) {
 	connection.StopHeartbeat()
 }
 
-func (suite *QueueSuite) TestMulti(c *C) {
+func (suite *TestSuite) TestMulti(c *C) {
 	connection := OpenConnection("multi-conn", "tcp", "localhost:6379", 1)
 	queue := connection.OpenQueue("multi-q").(*redisQueue)
 	queue.PurgeReady()
@@ -257,7 +254,7 @@ func (suite *QueueSuite) TestMulti(c *C) {
 	connection.StopHeartbeat()
 }
 
-func (suite *QueueSuite) TestBatch(c *C) {
+func (suite *TestSuite) TestBatch(c *C) {
 	connection := OpenConnection("batch-conn", "tcp", "localhost:6379", 1)
 	queue := connection.OpenQueue("batch-q").(*redisQueue)
 	queue.PurgeRejected()
@@ -306,7 +303,7 @@ func (suite *QueueSuite) TestBatch(c *C) {
 	c.Check(queue.RejectedCount(), Equals, 3)
 }
 
-func (suite *QueueSuite) TestReturnRejected(c *C) {
+func (suite *TestSuite) TestReturnRejected(c *C) {
 	connection := OpenConnection("return-conn", "tcp", "localhost:6379", 1)
 	queue := connection.OpenQueue("return-q").(*redisQueue)
 	queue.PurgeReady()
@@ -359,7 +356,7 @@ func (suite *QueueSuite) TestReturnRejected(c *C) {
 	c.Check(queue.RejectedCount(), Equals, 0)
 }
 
-func (suite *QueueSuite) TestPushQueue(c *C) {
+func (suite *TestSuite) TestPushQueue(c *C) {
 	connection := OpenConnection("push", "tcp", "localhost:6379", 1)
 	queue1 := connection.OpenQueue("queue1").(*redisQueue)
 	queue2 := connection.OpenQueue("queue2").(*redisQueue)
@@ -378,7 +375,7 @@ func (suite *QueueSuite) TestPushQueue(c *C) {
 	queue2.StartConsuming(10, time.Millisecond)
 	queue2.AddConsumer("push-cons", consumer2)
 
-	queue1.Publish("d1")
+	c.Check(queue1.Publish("d1"), Equals, true)
 	time.Sleep(2 * time.Millisecond)
 	c.Check(queue1.UnackedCount(), Equals, 1)
 	c.Assert(consumer1.LastDeliveries, HasLen, 1)
@@ -394,7 +391,7 @@ func (suite *QueueSuite) TestPushQueue(c *C) {
 	c.Check(queue2.RejectedCount(), Equals, 1)
 }
 
-func (suite *QueueSuite) TestConsuming(c *C) {
+func (suite *TestSuite) TestConsuming(c *C) {
 	connection := OpenConnection("consume", "tcp", "localhost:6379", 1)
 	queue := connection.OpenQueue("consume-q").(*redisQueue)
 
@@ -417,10 +414,11 @@ func (suite *QueueSuite) TestConsuming(c *C) {
 	}
 }
 
-func (suite *QueueSuite) TestStopConsuming_Consumer(c *C) {
+func (suite *TestSuite) TestStopConsuming_Consumer(c *C) {
 	connection := OpenConnection("consume", "tcp", "localhost:6379", 1)
 	queue := connection.OpenQueue("consume-q").(*redisQueue)
 	queue.PurgeReady()
+	defer connection.Close()
 
 	deliveryCount := 30
 
@@ -453,10 +451,11 @@ func (suite *QueueSuite) TestStopConsuming_Consumer(c *C) {
 	connection.StopHeartbeat()
 }
 
-func (suite *QueueSuite) TestStopConsuming_BatchConsumer(c *C) {
+func (suite *TestSuite) TestStopConsuming_BatchConsumer(c *C) {
 	connection := OpenConnection("batchConsume", "tcp", "localhost:6379", 1)
 	queue := connection.OpenQueue("batchConsume-q").(*redisQueue)
 	queue.PurgeReady()
+	defer connection.Close()
 
 	deliveryCount := 50
 
@@ -493,11 +492,12 @@ func (suite *QueueSuite) TestStopConsuming_BatchConsumer(c *C) {
 	connection.StopHeartbeat()
 }
 
-func (suite *QueueSuite) BenchmarkQueue(c *C) {
+func (suite *TestSuite) BenchmarkQueue(c *C) {
 	// open queue
 	connection := OpenConnection("bench-conn", "tcp", "localhost:6379", 1)
 	queueName := fmt.Sprintf("bench-q%d", c.N)
 	queue := connection.OpenQueue(queueName).(*redisQueue)
+	defer connection.Close()
 
 	// add some consumers
 	numConsumers := 10

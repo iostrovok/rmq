@@ -1,24 +1,21 @@
 package rmq
 
 import (
-	"testing"
 	"time"
 
-	. "github.com/adjust/gocheck"
+	. "github.com/iostrovok/check"
 )
 
-func TestStatsSuite(t *testing.T) {
-	TestingSuiteT(&StatsSuite{}, t)
-}
-
-type StatsSuite struct{}
-
-func (suite *StatsSuite) TestStats(c *C) {
+func (suite *TestSuite) TestStats(c *C) {
 	connection := OpenConnection("stats-conn", "tcp", "localhost:6379", 1)
 	c.Assert(NewCleaner(connection).Clean(), IsNil)
+	defer connection.Close()
 
 	conn1 := OpenConnection("stats-conn1", "tcp", "localhost:6379", 1)
 	conn2 := OpenConnection("stats-conn2", "tcp", "localhost:6379", 1)
+	defer conn1.Close()
+	defer conn2.Close()
+
 	q1 := conn2.OpenQueue("stats-q1").(*redisQueue)
 	q1.PurgeReady()
 	q1.Publish("stats-d1")
@@ -44,7 +41,7 @@ func (suite *StatsSuite) TestStats(c *C) {
 
 	stats = CollectStats([]string{"stats-q1", "stats-q2"}, connection)
 
-	for key, _ := range stats.QueueStats {
+	for key := range stats.QueueStats {
 		c.Check(key, Matches, "stats.*")
 	}
 	/*

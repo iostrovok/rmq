@@ -1,23 +1,16 @@
 package rmq
 
 import (
-	"testing"
 	"time"
 
 	. "github.com/iostrovok/check"
 )
 
-
-type CleanerSuite struct{}
-
-var _ = Suite(&CleanerSuite{})
-
-func TestCleanerSuite(t *testing.T) { TestingT(t) }
-
-func (suite *CleanerSuite) TestCleaner(c *C) {
+func (suite *TestSuite) TestCleaner(c *C) {
 	flushConn := OpenConnection("cleaner-flush", "tcp", "localhost:6379", 1)
 	flushConn.flushDb()
 	flushConn.StopHeartbeat()
+	defer flushConn.Close()
 
 	conn := OpenConnection("cleaner-conn1", "tcp", "localhost:6379", 1)
 	c.Check(conn.GetOpenQueues(), HasLen, 0)

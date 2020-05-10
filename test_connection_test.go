@@ -1,22 +1,15 @@
 package rmq
 
 import (
-	"testing"
-
 	. "github.com/iostrovok/check"
 )
 
-type ConnectionSuite struct{}
-
-var _ = Suite(&ConnectionSuite{})
-
-func TestConnectionSuite(t *testing.T) { TestingT(t) }
-
-func (suite *ConnectionSuite) TestConnection(c *C) {
+func (suite *TestSuite) TestConnection(c *C) {
 	connection := NewTestConnection()
 	var conn Connection
 	c.Check(connection, Implements, &conn)
 	c.Check(connection.GetDelivery("things", 0), Equals, "rmq.TestConnection: delivery not found: things[0]")
+	defer connection.Reset()
 
 	queue := connection.OpenQueue("things")
 	c.Check(connection.GetDelivery("things", -1), Equals, "rmq.TestConnection: delivery not found: things[-1]")

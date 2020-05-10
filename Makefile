@@ -1,3 +1,8 @@
+
+# Run test
+test:
+	go test --check.format=teamcity ./...
+
 # Download all dependencies
 mod:
 	@echo "======================================================================"

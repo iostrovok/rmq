@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adjust/uniuri"
+	"github.com/iostrovok/rmq/uniuri"
 	"github.com/go-redis/redis/v7"
 )
 

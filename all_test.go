@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	. "github.com/iostrovok/check"
-	. "github.com/golang/mock/mockgen"
+	_ "github.com/golang/mock/mockgen/model"
 )
 
 type TestSuite struct{}
